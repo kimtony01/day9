@@ -48,6 +48,8 @@ if not KAKAO_REST_API_KEY:
     st.stop()
 
 
+# ================= 공통 유틸 함수 =================
+
 def search_place(keyword: str, user_lat=None, user_lng=None):
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
     headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
@@ -316,7 +318,44 @@ def get_current_weather(lat: float, lng: float):
     }
 
 
+@st.cache_data(ttl=1800)
+def get_nearby_places(lat: float, lng: float, radius_m: int = 4000):
+    """Overpass API(OpenStreetMap, 키 불필요)로 주변 관광지/식당을 가져온다. 해외도 지원."""
+    query = f"""
+    [out:json][timeout:25];
+    (
+      node["tourism"="attraction"](around:{radius_m},{lat},{lng});
+      node["amenity"="restaurant"](around:{radius_m},{lat},{lng});
+    );
+    out center 40;
+    """
+    url = "https://overpass-api.de/api/interpreter"
+    response = requests.post(url, data={"data": query}, timeout=30)
+    response.raise_for_status()
+    elements = response.json().get("elements", [])
+
+    attractions, restaurants = [], []
+    for el in elements:
+        tags = el.get("tags", {})
+        name = tags.get("name")
+        if not name:
+            continue
+        item = {"name": name, "lat": el.get("lat"), "lng": el.get("lon")}
+        if tags.get("tourism") == "attraction":
+            attractions.append(item)
+        elif tags.get("amenity") == "restaurant":
+            restaurants.append(item)
+
+    return attractions[:15], restaurants[:15]
+
+
+def get_google_maps_url(name: str, lat: float, lng: float) -> str:
+    query = requests.utils.quote(f"{name} {lat},{lng}")
+    return f"https://www.google.com/maps/search/?api=1&query={query}"
+
+
 def render_destination_lookup(place_info):
+    """검색된 여행지의 지도 + 날씨/환율(사이드) + 관광지/식당 리스트를 보여준다."""
     name = place_info["name"]
     country = place_info["country"] or ""
     admin1 = place_info["admin1"] or ""
@@ -331,39 +370,113 @@ def render_destination_lookup(place_info):
 
     st.markdown(f"### 📍 {location_label}")
 
-    weather_col, currency_col = st.columns(2)
+    with st.spinner("주변 관광지·식당 정보를 불러오는 중..."):
+        try:
+            attractions, restaurants = get_nearby_places(lat, lng)
+        except Exception:
+            attractions, restaurants = [], []
 
-    with weather_col:
+    map_col, side_col = st.columns([3, 1], gap="medium")
+
+    with map_col:
+        m = folium.Map(location=[lat, lng], zoom_start=13, tiles="OpenStreetMap")
+        folium.Marker(
+            location=[lat, lng],
+            popup=f"📍 {name}",
+            tooltip=f"📍 {name}",
+            icon=folium.Icon(color="black", icon="star", prefix="fa"),
+        ).add_to(m)
+
+        for a in attractions:
+            if a["lat"] and a["lng"]:
+                folium.Marker(
+                    location=[a["lat"], a["lng"]],
+                    popup=f"🏛️ {a['name']}",
+                    tooltip=f"🏛️ {a['name']}",
+                    icon=folium.Icon(color="blue", icon="info-sign"),
+                ).add_to(m)
+
+        for r in restaurants:
+            if r["lat"] and r["lng"]:
+                folium.Marker(
+                    location=[r["lat"], r["lng"]],
+                    popup=f"🍽️ {r['name']}",
+                    tooltip=f"🍽️ {r['name']}",
+                    icon=folium.Icon(color="orange", icon="cutlery", prefix="fa"),
+                ).add_to(m)
+
+        st_folium(m, width=None, height=480, use_container_width=True)
+
+    with side_col:
         with st.container(border=True):
-            st.markdown("#### 🌤️ 현재 날씨")
+            st.markdown("#### 🌤️ 날씨")
             weather = get_current_weather(lat, lng)
             if weather:
                 desc = WEATHER_CODE_KR.get(weather["weathercode"], "정보 없음")
                 st.markdown(f"**{desc}**")
-                st.write(f"🌡️ 기온: {weather['temperature']}°C")
-                st.write(f"💨 풍속: {weather['windspeed']} km/h")
+                st.write(f"🌡️ {weather['temperature']}°C")
+                st.write(f"💨 {weather['windspeed']} km/h")
             else:
                 st.write("날씨 정보를 가져오지 못했습니다.")
 
-    with currency_col:
         with st.container(border=True):
-            st.markdown("#### 💱 환율 (KRW 기준)")
+            st.markdown("#### 💱 환율")
             target_currency = COUNTRY_CODE_TO_CURRENCY.get(country_code)
             if not target_currency:
-                st.write("이 국가의 통화 정보가 준비되어 있지 않아요.")
+                st.write("통화 정보 없음")
             elif target_currency == "KRW":
-                st.write("국내 여행지라 환율 변환이 필요 없어요 🇰🇷")
+                st.write("국내 여행지 🇰🇷")
             else:
                 try:
                     rates, updated_at = get_exchange_rates("KRW")
                     if target_currency in rates:
                         converted = 10000 * rates[target_currency]
-                        st.markdown(f"**10,000원 ≈ {converted:,.2f} {target_currency}**")
+                        st.markdown("**10,000원**")
+                        st.markdown(f"**≈ {converted:,.2f} {target_currency}**")
                         st.caption(f"기준: {updated_at}")
                     else:
-                        st.write("환율 정보를 찾을 수 없습니다.")
+                        st.write("환율 정보 없음")
                 except Exception as e:
-                    st.write(f"환율 조회 중 오류: {e}")
+                    st.write(f"오류: {e}")
+
+    st.write("")
+    list_tab1, list_tab2 = st.tabs([f"🏛️ 관광지 ({len(attractions)})", f"🍽️ 식당 ({len(restaurants)})"])
+
+    with list_tab1:
+        if not attractions:
+            st.caption("주변 관광지 정보를 찾지 못했어요.")
+        else:
+            cols = st.columns(2)
+            for idx, a in enumerate(attractions):
+                col = cols[idx % 2]
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"**🏛️ {a['name']}**")
+                        if a["lat"] and a["lng"]:
+                            st.link_button(
+                                "🗺️ 구글 지도에서 보기",
+                                get_google_maps_url(a["name"], a["lat"], a["lng"]),
+                                use_container_width=True,
+                                key=f"attr_{idx}",
+                            )
+
+    with list_tab2:
+        if not restaurants:
+            st.caption("주변 식당 정보를 찾지 못했어요.")
+        else:
+            cols = st.columns(2)
+            for idx, r in enumerate(restaurants):
+                col = cols[idx % 2]
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"**🍽️ {r['name']}**")
+                        if r["lat"] and r["lng"]:
+                            st.link_button(
+                                "🗺️ 구글 지도에서 보기",
+                                get_google_maps_url(r["name"], r["lat"], r["lng"]),
+                                use_container_width=True,
+                                key=f"rest_{idx}",
+                            )
 
 
 if "search_keyword" not in st.session_state:

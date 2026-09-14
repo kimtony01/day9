@@ -48,8 +48,6 @@ if not KAKAO_REST_API_KEY:
     st.stop()
 
 
-# ================= 공통 유틸 함수 =================
-
 def search_place(keyword: str, user_lat=None, user_lng=None):
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
     headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
@@ -213,7 +211,6 @@ HERO_SVG = """<div style="text-align:center; margin-bottom: -1.2rem;">
 </svg>
 </div>"""
 
-# 국내 여행지 큐레이션 데이터
 DOMESTIC_DESTINATIONS = [
     {"name": "부산 해운대", "emoji": "🏖️", "desc": "탁 트인 해변과 야경, 광안대교가 매력적인 대표 해양 관광지.", "search": "해운대 해수욕장"},
     {"name": "제주도", "emoji": "🌴", "desc": "한라산, 오름, 에메랄드빛 바다까지 사계절 다른 매력의 섬.", "search": "제주공항"},
@@ -223,19 +220,18 @@ DOMESTIC_DESTINATIONS = [
     {"name": "전주 한옥마을", "emoji": "🏮", "desc": "전통 한옥과 골목, 다양한 먹거리가 있는 대표 전통문화 거리.", "search": "전주 한옥마을"},
 ]
 
-# 해외 여행지 큐레이션 데이터 (카카오 API 범위 밖이라 정적 정보로 구성)
 OVERSEAS_DESTINATIONS = [
-    {"country": "일본 오사카", "emoji": "🇯🇵", "currency": "JPY", "season": "3~5월(벚꽃), 10~11월(단풍)",
+    {"country": "일본 오사카", "emoji": "🇯🇵", "search": "Osaka",
      "desc": "도톤보리, 오사카성 등 먹거리와 볼거리가 풍부한 간사이 지역 관문."},
-    {"country": "태국 방콕", "emoji": "🇹🇭", "currency": "THB", "season": "11~2월(건기)",
+    {"country": "태국 방콕", "emoji": "🇹🇭", "search": "Bangkok",
      "desc": "사원 투어와 야시장, 가성비 좋은 물가로 인기 있는 동남아 여행지."},
-    {"country": "베트남 다낭", "emoji": "🇻🇳", "currency": "VND", "season": "2~8월(건기)",
+    {"country": "베트남 다낭", "emoji": "🇻🇳", "search": "Da Nang",
      "desc": "미케 비치와 바나힐, 가족 여행지로 각광받는 휴양 도시."},
-    {"country": "미국 뉴욕", "emoji": "🇺🇸", "currency": "USD", "season": "4~6월, 9~11월",
+    {"country": "미국 뉴욕", "emoji": "🇺🇸", "search": "New York",
      "desc": "타임스퀘어, 센트럴파크 등 도시 여행의 정수를 느낄 수 있는 곳."},
-    {"country": "프랑스 파리", "emoji": "🇫🇷", "currency": "EUR", "season": "4~6월, 9~10월",
+    {"country": "프랑스 파리", "emoji": "🇫🇷", "search": "Paris",
      "desc": "에펠탑, 루브르 박물관 등 예술과 낭만의 도시."},
-    {"country": "필리핀 세부", "emoji": "🇵🇭", "currency": "PHP", "season": "12~5월(건기)",
+    {"country": "필리핀 세부", "emoji": "🇵🇭", "search": "Cebu",
      "desc": "화이트비치와 스노클링으로 유명한 대표 휴양 섬."},
 ]
 
@@ -251,10 +247,29 @@ CURRENCY_OPTIONS = {
     "KRW (한국 원)": "KRW",
 }
 
+COUNTRY_CODE_TO_CURRENCY = {
+    "KR": "KRW", "JP": "JPY", "CN": "CNY", "TH": "THB", "VN": "VND",
+    "US": "USD", "GB": "GBP", "PH": "PHP", "SG": "SGD", "MY": "MYR",
+    "ID": "IDR", "TW": "TWD", "HK": "HKD", "AU": "AUD", "CA": "CAD",
+    "MX": "MXN", "TR": "TRY", "IN": "INR", "AE": "AED", "EG": "EGP",
+    "FR": "EUR", "DE": "EUR", "IT": "EUR", "ES": "EUR", "NL": "EUR",
+    "PT": "EUR", "AT": "EUR", "BE": "EUR", "IE": "EUR", "FI": "EUR",
+    "GR": "EUR", "CH": "CHF", "NZ": "NZD",
+}
+
+WEATHER_CODE_KR = {
+    0: "☀️ 맑음", 1: "🌤️ 대체로 맑음", 2: "⛅ 부분적으로 흐림", 3: "☁️ 흐림",
+    45: "🌫️ 안개", 48: "🌫️ 짙은 안개",
+    51: "🌦️ 약한 이슬비", 53: "🌦️ 이슬비", 55: "🌧️ 강한 이슬비",
+    61: "🌧️ 약한 비", 63: "🌧️ 비", 65: "🌧️ 강한 비",
+    71: "🌨️ 약한 눈", 73: "🌨️ 눈", 75: "❄️ 강한 눈",
+    80: "🌦️ 소나기", 81: "🌧️ 강한 소나기", 82: "⛈️ 매우 강한 소나기",
+    95: "⛈️ 뇌우", 96: "⛈️ 우박 동반 뇌우", 99: "⛈️ 강한 우박 동반 뇌우",
+}
+
 
 @st.cache_data(ttl=3600)
 def get_exchange_rates(base_currency: str):
-    """무료 환율 API(open.er-api.com)로 기준 통화 대비 환율표를 가져온다. 키 불필요."""
     url = f"https://open.er-api.com/v6/latest/{base_currency}"
     response = requests.get(url, timeout=10)
     response.raise_for_status()
@@ -264,22 +279,108 @@ def get_exchange_rates(base_currency: str):
     return data["rates"], data.get("time_last_update_utc", "")
 
 
-# ================= 세션 상태 초기화 =================
+@st.cache_data(ttl=1800)
+def geocode_destination(query: str):
+    """Open-Meteo 지오코딩 API로 지명 -> 좌표/국가 변환 (키 불필요, 전세계 지원)."""
+    url = "https://geocoding-api.open-meteo.com/v1/search"
+    params = {"name": query, "count": 1, "language": "ko", "format": "json"}
+    response = requests.get(url, params=params, timeout=10)
+    response.raise_for_status()
+    results = response.json().get("results")
+    if not results:
+        return None
+    r = results[0]
+    return {
+        "name": r.get("name"),
+        "country": r.get("country"),
+        "country_code": r.get("country_code"),
+        "admin1": r.get("admin1"),
+        "lat": r.get("latitude"),
+        "lng": r.get("longitude"),
+    }
+
+
+@st.cache_data(ttl=1800)
+def get_current_weather(lat: float, lng: float):
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {"latitude": lat, "longitude": lng, "current_weather": True}
+    response = requests.get(url, params=params, timeout=10)
+    response.raise_for_status()
+    data = response.json().get("current_weather")
+    if not data:
+        return None
+    return {
+        "temperature": data.get("temperature"),
+        "windspeed": data.get("windspeed"),
+        "weathercode": data.get("weathercode"),
+    }
+
+
+def render_destination_lookup(place_info):
+    name = place_info["name"]
+    country = place_info["country"] or ""
+    admin1 = place_info["admin1"] or ""
+    lat, lng = place_info["lat"], place_info["lng"]
+    country_code = (place_info["country_code"] or "").upper()
+
+    location_label = f"{name}"
+    if admin1 and admin1 != name:
+        location_label += f", {admin1}"
+    if country:
+        location_label += f" ({country})"
+
+    st.markdown(f"### 📍 {location_label}")
+
+    weather_col, currency_col = st.columns(2)
+
+    with weather_col:
+        with st.container(border=True):
+            st.markdown("#### 🌤️ 현재 날씨")
+            weather = get_current_weather(lat, lng)
+            if weather:
+                desc = WEATHER_CODE_KR.get(weather["weathercode"], "정보 없음")
+                st.markdown(f"**{desc}**")
+                st.write(f"🌡️ 기온: {weather['temperature']}°C")
+                st.write(f"💨 풍속: {weather['windspeed']} km/h")
+            else:
+                st.write("날씨 정보를 가져오지 못했습니다.")
+
+    with currency_col:
+        with st.container(border=True):
+            st.markdown("#### 💱 환율 (KRW 기준)")
+            target_currency = COUNTRY_CODE_TO_CURRENCY.get(country_code)
+            if not target_currency:
+                st.write("이 국가의 통화 정보가 준비되어 있지 않아요.")
+            elif target_currency == "KRW":
+                st.write("국내 여행지라 환율 변환이 필요 없어요 🇰🇷")
+            else:
+                try:
+                    rates, updated_at = get_exchange_rates("KRW")
+                    if target_currency in rates:
+                        converted = 10000 * rates[target_currency]
+                        st.markdown(f"**10,000원 ≈ {converted:,.2f} {target_currency}**")
+                        st.caption(f"기준: {updated_at}")
+                    else:
+                        st.write("환율 정보를 찾을 수 없습니다.")
+                except Exception as e:
+                    st.write(f"환율 조회 중 오류: {e}")
+
+
 if "search_keyword" not in st.session_state:
     st.session_state.search_keyword = ""
 if "food_keyword" not in st.session_state:
     st.session_state.food_keyword = ""
 if "prefill_search" not in st.session_state:
     st.session_state.prefill_search = ""
+if "travel_query" not in st.session_state:
+    st.session_state.travel_query = ""
 
-# ---------- 위치 정보 (모든 메뉴 공통) ----------
 location = get_geolocation()
 user_lat, user_lng = None, None
 if location and "coords" in location:
     user_lat = location["coords"]["latitude"]
     user_lng = location["coords"]["longitude"]
 
-# ================= 사이드바 메뉴 =================
 with st.sidebar:
     st.markdown("## 🧭 메뉴")
     menu = st.radio(
@@ -294,7 +395,6 @@ with st.sidebar:
         st.caption("위치 권한을 허용하면 거리(m)도 함께 보여드려요")
 
 
-# ================= 🗺️ 어디 갈까? =================
 if menu == "🗺️ 어디 갈까?":
     st.markdown(HERO_SVG, unsafe_allow_html=True)
     st.markdown('<div class="hero-title">🧭 어디 갈까?</div>', unsafe_allow_html=True)
@@ -355,71 +455,94 @@ if menu == "🗺️ 어디 갈까?":
                         render_place_card(i, place, key_prefix="main_")
 
 
-# ================= 🍚 오늘 뭐 먹지? =================
 elif menu == "🍚 오늘 뭐 먹지?":
     st.markdown("## 🍚 오늘 뭐 먹지?")
-    st.caption("주변 맛집을 추천해드려요. 음식 종류나 동네를 적어도 되고, 비워두면 아무거나 골라드려요!")
+    st.caption("내 현재 위치 기준으로 주변 맛집을 추천해드려요.")
 
-    food_col1, food_col2 = st.columns([4, 1])
-    with food_col1:
-        food_keyword_input = st.text_input(
-            "밥 뭐먹지 검색",
-            placeholder="예: 한식, 파스타, 강남 맛집 ... (비워두면 랜덤 추천)",
-            label_visibility="collapsed",
-            key="food_search_input",
-        )
-    with food_col2:
-        food_search_clicked = st.button("🍽️ 추천받기", use_container_width=True)
+    if user_lat is None:
+        st.warning("📍 위치 권한을 허용해야 내 주변 맛집을 추천할 수 있어요. 브라우저의 위치 권한 요청을 허용해주세요.")
+    else:
+        food_col1, food_col2 = st.columns([4, 1])
+        with food_col1:
+            food_keyword_input = st.text_input(
+                "밥 뭐먹지 검색",
+                placeholder="예: 한식, 파스타, 카페 ... (비워두면 아무거나 추천)",
+                label_visibility="collapsed",
+                key="food_search_input",
+            )
+        with food_col2:
+            food_search_clicked = st.button("🍽️ 추천받기", use_container_width=True)
 
-    if food_search_clicked:
-        st.session_state.food_keyword = food_keyword_input.strip()
+        if food_search_clicked:
+            st.session_state.food_keyword = food_keyword_input.strip()
 
-    if st.session_state.food_keyword or food_search_clicked:
-        query = st.session_state.food_keyword if st.session_state.food_keyword else "맛집"
-        food_results = search_place(query, user_lat, user_lng)
+        if st.session_state.food_keyword or food_search_clicked:
+            query = st.session_state.food_keyword if st.session_state.food_keyword else "맛집"
+            food_results = search_place(query, user_lat, user_lng)
 
-        if not food_results:
-            st.warning("추천할 만한 곳을 못 찾았어요. 다른 키워드로 시도해보세요.")
-        else:
-            pick = random.choice(food_results[: min(10, len(food_results))])
-            st.success(f"오늘의 추천: **{pick['place_name']}** 어때요? 🍽️")
+            if not food_results:
+                st.warning("추천할 만한 곳을 못 찾았어요. 다른 키워드로 시도해보세요.")
+            else:
+                pick = random.choice(food_results[: min(10, len(food_results))])
+                st.success(f"오늘의 추천: **{pick['place_name']}** 어때요? 🍽️")
 
-            pick_lat = float(pick["y"])
-            pick_lng = float(pick["x"])
-            pick_address = pick.get("road_address_name") or pick.get("address_name")
-            dist_label = format_distance(pick.get("distance"))
+                pick_lat = float(pick["y"])
+                pick_lng = float(pick["x"])
+                pick_address = pick.get("road_address_name") or pick.get("address_name")
+                dist_label = format_distance(pick.get("distance"))
 
-            with st.container(border=True):
-                st.markdown(f"### 🍽️ {pick['place_name']}")
-                st.caption(pick_address + (f" · 내 위치에서 {dist_label}" if dist_label else ""))
-                b1, b2 = st.columns(2)
-                with b1:
-                    st.link_button("🚶 로드뷰", get_roadview_url(pick_lat, pick_lng), use_container_width=True)
-                with b2:
-                    if pick.get("place_url"):
-                        st.link_button("⭐ 평점/후기", pick["place_url"], use_container_width=True)
-                    else:
-                        st.button("⭐ 정보없음", disabled=True, use_container_width=True)
+                with st.container(border=True):
+                    st.markdown(f"### 🍽️ {pick['place_name']}")
+                    st.caption(pick_address + (f" · 내 위치에서 {dist_label}" if dist_label else ""))
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        st.link_button("🚶 로드뷰", get_roadview_url(pick_lat, pick_lng), use_container_width=True)
+                    with b2:
+                        if pick.get("place_url"):
+                            st.link_button("⭐ 평점/후기", pick["place_url"], use_container_width=True)
+                        else:
+                            st.button("⭐ 정보없음", disabled=True, use_container_width=True)
 
-            st.write("")
-            if st.button("🔄 다른 곳 추천받기"):
-                st.rerun()
+                st.write("")
+                if st.button("🔄 다른 곳 추천받기"):
+                    st.rerun()
 
-            with st.expander("다른 후보들도 보기"):
-                for i, place in enumerate(food_results[:10], start=1):
-                    if place is pick:
-                        continue
-                    render_place_card(i, place, key_prefix="food_")
+                with st.expander("다른 후보들도 보기"):
+                    for i, place in enumerate(food_results[:10], start=1):
+                        if place is pick:
+                            continue
+                        render_place_card(i, place, key_prefix="food_")
 
 
-# ================= ✈️ 여행 준비 도우미 =================
 elif menu == "✈️ 여행 준비 도우미":
     st.markdown("## ✈️ 여행 준비 도우미")
-    st.caption("국내/해외 여행지를 둘러보고, 환율 계산까지 한 번에!")
+    st.caption("여행지를 검색하면 날씨와 환율을 바로 확인할 수 있어요. 아래에서 인기 여행지도 둘러보세요!")
 
-    tab_domestic, tab_overseas, tab_currency = st.tabs(["🇰🇷 국내 여행지", "🌍 해외 여행지", "💱 환율 계산기"])
+    search_col1, search_col2 = st.columns([4, 1])
+    with search_col1:
+        travel_input = st.text_input(
+            "여행지 검색",
+            placeholder="예: 제주도, 오사카, 방콕, 파리 ...",
+            label_visibility="collapsed",
+            key="travel_search_input",
+        )
+    with search_col2:
+        travel_search_clicked = st.button("🔍 검색", use_container_width=True, key="travel_search_btn")
 
-    # ---------- 국내 여행지 ----------
+    if travel_search_clicked and travel_input.strip():
+        st.session_state.travel_query = travel_input.strip()
+
+    if st.session_state.travel_query:
+        place_info = geocode_destination(st.session_state.travel_query)
+        if not place_info:
+            st.warning(f"'{st.session_state.travel_query}'에 대한 정보를 찾을 수 없어요. 다른 이름으로 시도해보세요.")
+        else:
+            render_destination_lookup(place_info)
+
+    st.divider()
+
+    tab_domestic, tab_overseas = st.tabs(["🇰🇷 국내 인기 여행지", "🌍 해외 인기 여행지"])
+
     with tab_domestic:
         st.write("")
         cols = st.columns(2)
@@ -429,15 +552,19 @@ elif menu == "✈️ 여행 준비 도우미":
                 with st.container(border=True):
                     st.markdown(f"### {dest['emoji']} {dest['name']}")
                     st.write(dest["desc"])
-                    if st.button("지도에서 보기", key=f"domestic_{idx}", use_container_width=True):
-                        st.session_state.prefill_search = dest["search"]
-                        st.session_state.search_keyword = dest["search"]
-                        st.info("왼쪽 사이드바에서 '🗺️ 어디 갈까?' 메뉴를 눌러 지도를 확인하세요!")
+                    btn_col1, btn_col2 = st.columns(2)
+                    with btn_col1:
+                        if st.button("🗺️ 지도 검색", key=f"domestic_map_{idx}", use_container_width=True):
+                            st.session_state.prefill_search = dest["search"]
+                            st.session_state.search_keyword = dest["search"]
+                            st.info("왼쪽 사이드바에서 '🗺️ 어디 갈까?' 메뉴를 눌러 확인하세요!")
+                    with btn_col2:
+                        if st.button("🌤️ 날씨/환율", key=f"domestic_weather_{idx}", use_container_width=True):
+                            st.session_state.travel_query = dest["name"]
+                            st.rerun()
 
-    # ---------- 해외 여행지 ----------
     with tab_overseas:
         st.write("")
-        st.caption("해외는 국내 지도 검색 대신 여행 참고 정보로 안내해드려요.")
         cols = st.columns(2)
         for idx, dest in enumerate(OVERSEAS_DESTINATIONS):
             col = cols[idx % 2]
@@ -445,34 +572,6 @@ elif menu == "✈️ 여행 준비 도우미":
                 with st.container(border=True):
                     st.markdown(f"### {dest['emoji']} {dest['country']}")
                     st.write(dest["desc"])
-                    st.caption(f"💰 사용 통화: {dest['currency']}  ·  🗓️ 추천 시기: {dest['season']}")
-
-    # ---------- 환율 계산기 ----------
-    with tab_currency:
-        st.write("")
-        st.caption("실시간 환율 정보를 기준으로 계산합니다 (약 1시간 캐시).")
-
-        calc_col1, calc_col2, calc_col3 = st.columns([2, 1, 2])
-        with calc_col1:
-            from_label = st.selectbox("변환할 통화", list(CURRENCY_OPTIONS.keys()), index=8)  # 기본 KRW
-        with calc_col2:
-            st.markdown("<div style='text-align:center; padding-top: 2rem;'>➡️</div>", unsafe_allow_html=True)
-        with calc_col3:
-            to_label = st.selectbox("도착 통화", list(CURRENCY_OPTIONS.keys()), index=0)  # 기본 USD
-
-        amount = st.number_input("금액", min_value=0.0, value=10000.0, step=1000.0)
-
-        if st.button("💱 환율 계산하기", use_container_width=True):
-            from_code = CURRENCY_OPTIONS[from_label]
-            to_code = CURRENCY_OPTIONS[to_label]
-
-            try:
-                rates, updated_at = get_exchange_rates(from_code)
-                if to_code not in rates:
-                    st.error("해당 통화의 환율 정보를 찾을 수 없습니다.")
-                else:
-                    converted = amount * rates[to_code]
-                    st.success(f"{amount:,.0f} {from_code} = **{converted:,.2f} {to_code}**")
-                    st.caption(f"기준 환율 업데이트: {updated_at}")
-            except Exception as e:
-                st.error(f"환율 정보를 가져오는 중 문제가 발생했습니다: {e}")
+                    if st.button("🌤️ 날씨/환율 보기", key=f"overseas_weather_{idx}", use_container_width=True):
+                        st.session_state.travel_query = dest["search"]
+                        st.rerun()

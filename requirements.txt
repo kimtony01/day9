@@ -1,0 +1,6 @@
+streamlit>=1.36.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+folium>=0.16.0
+streamlit-folium>=0.20.0
+streamlit-js-eval>=0.1.7

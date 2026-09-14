@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_17834b31e1eef13b9e79ce201399ec58 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_17834b31e1eef13b9e79ce201399ec58" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_17834b31e1eef13b9e79ce201399ec58 = L.map(
+                "map_17834b31e1eef13b9e79ce201399ec58",
+                {
+                    center: [37.5665, 126.978],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 13,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_565487367df0c9e3e421661c655301fd = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_565487367df0c9e3e421661c655301fd.addTo(map_17834b31e1eef13b9e79ce201399ec58);
+        
+    
+            var marker_852fb2144cc79035faf6ec0f8f5593cc = L.marker(
+                [37.5796, 126.977],
+                {
+}
+            ).addTo(map_17834b31e1eef13b9e79ce201399ec58);
+        
+    
+        var popup_79f6bdf8d432bd547d6948fc36aa3d1f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_108bc30302ff63369fcdcf2a2ec19abc = $(`<div id="html_108bc30302ff63369fcdcf2a2ec19abc" style="width: 100.0%; height: 100.0%;">경복궁</div>`)[0];
+                popup_79f6bdf8d432bd547d6948fc36aa3d1f.setContent(html_108bc30302ff63369fcdcf2a2ec19abc);
+            
+        
+
+        marker_852fb2144cc79035faf6ec0f8f5593cc.bindPopup(popup_79f6bdf8d432bd547d6948fc36aa3d1f)
+        ;
+
+        
+    
+    
+            marker_852fb2144cc79035faf6ec0f8f5593cc.bindTooltip(
+                `<div>
+                     경복궁
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var marker_bea93a8c1257d5cb770e5786c8c2bc2c = L.marker(
+                [37.5512, 126.9882],
+                {
+}
+            ).addTo(map_17834b31e1eef13b9e79ce201399ec58);
+        
+    
+        var popup_d76561231166993d4ed0419c3352667f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_4b8110e65d039a0a8bf512e34e9c751a = $(`<div id="html_4b8110e65d039a0a8bf512e34e9c751a" style="width: 100.0%; height: 100.0%;">N서울타워</div>`)[0];
+                popup_d76561231166993d4ed0419c3352667f.setContent(html_4b8110e65d039a0a8bf512e34e9c751a);
+            
+        
+
+        marker_bea93a8c1257d5cb770e5786c8c2bc2c.bindPopup(popup_d76561231166993d4ed0419c3352667f)
+        ;
+
+        
+    
+    
+            marker_bea93a8c1257d5cb770e5786c8c2bc2c.bindTooltip(
+                `<div>
+                     N서울타워
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var marker_4aba4ec03dee69d9b5af103b4426f1e9 = L.marker(
+                [37.5633, 126.9873],
+                {
+}
+            ).addTo(map_17834b31e1eef13b9e79ce201399ec58);
+        
+    
+        var popup_ae51d6e1e043f092b10a298c50f02e77 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_dda668cad18a8c73c8e2842c3dace833 = $(`<div id="html_dda668cad18a8c73c8e2842c3dace833" style="width: 100.0%; height: 100.0%;">명동성당</div>`)[0];
+                popup_ae51d6e1e043f092b10a298c50f02e77.setContent(html_dda668cad18a8c73c8e2842c3dace833);
+            
+        
+
+        marker_4aba4ec03dee69d9b5af103b4426f1e9.bindPopup(popup_ae51d6e1e043f092b10a298c50f02e77)
+        ;
+
+        
+    
+    
+            marker_4aba4ec03dee69d9b5af103b4426f1e9.bindTooltip(
+                `<div>
+                     명동성당
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var marker_790c984fb2b66486cb57f589bec871c5 = L.marker(
+                [37.5701, 126.9986],
+                {
+}
+            ).addTo(map_17834b31e1eef13b9e79ce201399ec58);
+        
+    
+        var popup_331b7674bcfa63a1e4afca46d2c044f4 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_1d5ad01060d2ffc1ff8c0bb761343cf2 = $(`<div id="html_1d5ad01060d2ffc1ff8c0bb761343cf2" style="width: 100.0%; height: 100.0%;">광장시장</div>`)[0];
+                popup_331b7674bcfa63a1e4afca46d2c044f4.setContent(html_1d5ad01060d2ffc1ff8c0bb761343cf2);
+            
+        
+
+        marker_790c984fb2b66486cb57f589bec871c5.bindPopup(popup_331b7674bcfa63a1e4afca46d2c044f4)
+        ;
+
+        
+    
+    
+            marker_790c984fb2b66486cb57f589bec871c5.bindTooltip(
+                `<div>
+                     광장시장
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>

@@ -233,6 +233,72 @@ HERO_SVG = """<div style="text-align:center; margin-bottom: -1.2rem;">
 </svg>
 </div>"""
 
+# ---------- "오늘 뭐 먹지?" 히어로 일러스트: 김이 나는 밥그릇 + 물음표 생각풍선 ----------
+FOOD_HERO_SVG = """<div style="text-align:center; margin-bottom: -1.2rem;">
+<svg width="260" height="200" viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg">
+<ellipse cx="130" cy="185" rx="90" ry="10" fill="#F3E9DC"/>
+<path d="M75 120c0 30 25 45 55 45s55-15 55-45z" fill="#FFFFFF" stroke="#E8DCC8" stroke-width="3"/>
+<ellipse cx="130" cy="120" rx="55" ry="14" fill="#F7B32B"/>
+<ellipse cx="130" cy="120" rx="55" ry="14" fill="none" stroke="#E39A12" stroke-width="2"/>
+<circle cx="112" cy="117" r="5" fill="#FF6B35"/>
+<circle cx="145" cy="122" r="5" fill="#4CB963"/>
+<circle cx="130" cy="112" r="5" fill="#FF6B35"/>
+<rect x="60" y="150" width="140" height="8" rx="4" fill="#D9B48F"/>
+<path d="M110 95c-3-10 3-18 3-28" stroke="#CBD5DB" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+<path d="M130 90c-3-12 4-20 2-32" stroke="#CBD5DB" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+<path d="M150 95c-3-10 3-18 1-28" stroke="#CBD5DB" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.8"/>
+<line x1="170" y1="105" x2="205" y2="80" stroke="#8C6239" stroke-width="5" stroke-linecap="round"/>
+<line x1="176" y1="112" x2="211" y2="87" stroke="#8C6239" stroke-width="5" stroke-linecap="round"/>
+<circle cx="205" cy="45" r="26" fill="#FFFFFF" stroke="#FF6B35" stroke-width="3"/>
+<circle cx="182" cy="70" r="6" fill="#FFFFFF" stroke="#FF6B35" stroke-width="3"/>
+<text x="205" y="54" font-size="30" font-weight="bold" fill="#FF6B35" text-anchor="middle">?</text>
+</svg>
+</div>"""
+
+# ---------- "여행 준비 도우미" 히어로 일러스트: 캐리어 + 비행기 + 지구본 ----------
+TRAVEL_HERO_SVG = """<div style="text-align:center; margin-bottom: -1.2rem;">
+<svg width="260" height="200" viewBox="0 0 260 200" xmlns="http://www.w3.org/2000/svg">
+<ellipse cx="130" cy="185" rx="90" ry="10" fill="#F3E9DC"/>
+<rect x="90" y="90" width="80" height="90" rx="12" fill="#FF6B35"/>
+<rect x="90" y="90" width="80" height="90" rx="12" fill="none" stroke="#E0552A" stroke-width="3"/>
+<rect x="115" y="75" width="30" height="20" rx="6" fill="none" stroke="#FF6B35" stroke-width="6"/>
+<rect x="100" y="115" width="60" height="6" rx="3" fill="#FFD6B8"/>
+<rect x="100" y="135" width="60" height="6" rx="3" fill="#FFD6B8"/>
+<rect x="100" y="155" width="35" height="6" rx="3" fill="#FFD6B8"/>
+<circle cx="105" cy="185" r="6" fill="#3C3B6E"/>
+<circle cx="155" cy="185" r="6" fill="#3C3B6E"/>
+<circle cx="205" cy="70" r="24" fill="#CFE8CF" stroke="#4CB963" stroke-width="3"/>
+<path d="M185 70c8-10 32-10 40 0" stroke="#4CB963" stroke-width="2.5" fill="none"/>
+<path d="M185 78c8 8 32 8 40 0" stroke="#4CB963" stroke-width="2.5" fill="none"/>
+<line x1="205" y1="47" x2="205" y2="93" stroke="#4CB963" stroke-width="2.5"/>
+<path d="M35 55l18 6-6 6 10 4-14 10-4-12-10-4z" fill="#F7B32B"/>
+<path d="M45 61l60 24" stroke="#F7B32B" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round"/>
+</svg>
+</div>"""
+
+
+def get_distance_joke(distance_km: float, duration_min: float) -> str:
+    """경로 거리에 따라 장난스러운 코멘트를 반환한다."""
+    if distance_km < 1:
+        return "🚶 이 정도는 여행이 아니라 그냥 산책이에요! 신발 끈만 묶고 나가세요."
+    elif distance_km < 5:
+        return "🚲 자전거로 가도 커피 식기 전에 도착하겠는데요?"
+    elif distance_km < 20:
+        return "☕ 부담 없이 다녀올 동네 나들이 거리예요!"
+    elif distance_km < 50:
+        return "🚗 당일치기 드라이브로 딱 좋은 거리네요. 기름은 넉넉히!"
+    elif distance_km < 150:
+        return "🥜 휴게소에서 호두과자랑 핫바는 국룰이죠. 챙겨 드세요!"
+    elif distance_km < 300:
+        return "🛣️ 이 정도면 슬슬 1박 2일을 각오하셔야 할 거리예요."
+    elif distance_km < 500:
+        return f"😮 {distance_km:.0f}km면 거의 국토 종단 수준인데요? 운전대 꽉 잡으세요!"
+    elif distance_km < 1000:
+        return f"🤯 {distance_km:.0f}km라니, 이거 여행 가는 거 맞아요?! 서울-부산을 왕복하고도 남는 거리예요. 정말 가실 거예요?"
+    else:
+        return f"🌍 {distance_km:.0f}km면 이건 여행이 아니라 대륙 횡단인데요?! 여권이랑 각오 단단히 챙기세요 😂"
+
+
 DOMESTIC_DESTINATIONS = [
     {"name": "부산", "emoji": "🏖️", "desc": "탁 트인 해변과 야경, 광안대교가 매력적인 대표 해양 도시.", "search": "부산"},
     {"name": "제주도", "emoji": "🌴", "desc": "한라산, 오름, 에메랄드빛 바다까지 사계절 다른 매력의 섬.", "search": "제주"},
@@ -683,6 +749,7 @@ if menu == "🗺️ 어디 갈까?":
 
 
 elif menu == "🍚 오늘 뭐 먹지?":
+    st.markdown(FOOD_HERO_SVG, unsafe_allow_html=True)
     st.markdown("## 🍚 오늘 뭐 먹지?")
     st.caption("내 현재 위치 기준으로 주변 맛집을 추천해드려요.")
 
@@ -742,6 +809,7 @@ elif menu == "🍚 오늘 뭐 먹지?":
 
 
 elif menu == "✈️ 여행 준비 도우미":
+    st.markdown(TRAVEL_HERO_SVG, unsafe_allow_html=True)
     st.markdown("## ✈️ 여행 준비 도우미")
     st.caption("여행지 검색부터 루트 짜기, 인기 여행지 둘러보기까지 한 곳에서!")
 
@@ -857,6 +925,8 @@ elif menu == "✈️ 여행 준비 도우미":
                     st.metric("🚗 총 거리", f"{route['distance_km']:.1f} km")
                 with info_col2:
                     st.metric("⏱️ 예상 소요 시간", f"{route['duration_min']:.0f} 분")
+
+                st.info(get_distance_joke(route["distance_km"], route["duration_min"]))
 
                 m = build_route_map(st.session_state.route_places, route["path"])
                 st_folium(m, width=None, height=520, use_container_width=True)

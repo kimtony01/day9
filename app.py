@@ -65,6 +65,26 @@ def search_place(keyword: str, user_lat=None, user_lng=None):
     return response.json().get("documents", [])
 
 
+def search_kakao_category(category_code: str, lat: float, lng: float, radius: int = 5000):
+    """카카오 카테고리 검색 (AT4: 관광명소, FD6: 음식점)"""
+    url = "https://dapi.kakao.com/v2/local/search/category.json"
+    headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
+    params = {
+        "category_group_code": category_code,
+        "x": lng,
+        "y": lat,
+        "radius": radius,
+        "size": 15
+    }
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response.raise_for_status()
+        docs = response.json().get("documents", [])
+        return [{"name": d["place_name"], "lat": float(d["y"]), "lng": float(d["x"])} for d in docs]
+    except Exception:
+        return []
+
+
 def format_distance(distance_str):
     if not distance_str:
         return None
@@ -214,11 +234,11 @@ HERO_SVG = """<div style="text-align:center; margin-bottom: -1.2rem;">
 </div>"""
 
 DOMESTIC_DESTINATIONS = [
-    {"name": "부산 해운대", "emoji": "🏖️", "desc": "탁 트인 해변과 야경, 광안대교가 매력적인 대표 해양 관광지.", "search": "해운대 해수욕장"},
-    {"name": "제주도", "emoji": "🌴", "desc": "한라산, 오름, 에메랄드빛 바다까지 사계절 다른 매력의 섬.", "search": "제주공항"},
-    {"name": "강릉", "emoji": "☕", "desc": "안목해변 커피거리와 경포호, 감성 여행지로 인기.", "search": "강릉 안목해변"},
-    {"name": "경주", "emoji": "🏯", "desc": "불국사, 첨성대 등 신라 천년의 역사를 걸으며 느낄 수 있는 도시.", "search": "경주 불국사"},
-    {"name": "여수", "emoji": "🌉", "desc": "여수 밤바다로 유명한 낭만적인 항구 도시.", "search": "여수 밤바다"},
+    {"name": "부산", "emoji": "🏖️", "desc": "탁 트인 해변과 야경, 광안대교가 매력적인 대표 해양 도시.", "search": "부산"},
+    {"name": "제주도", "emoji": "🌴", "desc": "한라산, 오름, 에메랄드빛 바다까지 사계절 다른 매력의 섬.", "search": "제주"},
+    {"name": "강릉", "emoji": "☕", "desc": "안목해변 커피거리와 경포호, 감성 여행지로 인기.", "search": "강릉"},
+    {"name": "경주", "emoji": "🏯", "desc": "불국사, 첨성대 등 신라 천년의 역사를 걸으며 느낄 수 있는 도시.", "search": "경주"},
+    {"name": "여수", "emoji": "🌉", "desc": "여수 밤바다로 유명한 낭만적인 항구 도시.", "search": "여수"},
     {"name": "전주 한옥마을", "emoji": "🏮", "desc": "전통 한옥과 골목, 다양한 먹거리가 있는 대표 전통문화 거리.", "search": "전주 한옥마을"},
 ]
 
@@ -283,7 +303,29 @@ def get_exchange_rates(base_currency: str):
 
 @st.cache_data(ttl=1800)
 def geocode_destination(query: str):
-    """Open-Meteo 지오코딩 API로 지명 -> 좌표/국가 변환 (키 불필요, 전세계 지원)."""
+    """카카오 API로 국내 검색을 우선 시도하고, 없으면 Open-Meteo로 해외 검색"""
+    if KAKAO_REST_API_KEY:
+        try:
+            url = "https://dapi.kakao.com/v2/local/search/keyword.json"
+            headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
+            res = requests.get(url, headers=headers, params={"query": query, "size": 1}, timeout=5)
+            if res.status_code == 200:
+                docs = res.json().get("documents", [])
+                if docs:
+                    d = docs[0]
+                    return {
+                        "name": d["place_name"],
+                        "country": "대한민국",
+                        "country_code": "KR",
+                        "admin1": d.get("address_name", ""),
+                        "lat": float(d["y"]),
+                        "lng": float(d["x"]),
+                        "is_kakao": True
+                    }
+        except Exception:
+            pass
+
+    # Open-Meteo 폴백 (해외 여행지 지원)
     url = "https://geocoding-api.open-meteo.com/v1/search"
     params = {"name": query, "count": 1, "language": "ko", "format": "json"}
     response = requests.get(url, params=params, timeout=10)
@@ -299,6 +341,7 @@ def geocode_destination(query: str):
         "admin1": r.get("admin1"),
         "lat": r.get("latitude"),
         "lng": r.get("longitude"),
+        "is_kakao": False
     }
 
 
@@ -319,8 +362,14 @@ def get_current_weather(lat: float, lng: float):
 
 
 @st.cache_data(ttl=1800)
-def get_nearby_places(lat: float, lng: float, radius_m: int = 4000):
-    """Overpass API(OpenStreetMap, 키 불필요)로 주변 관광지/식당을 가져온다. 해외도 지원."""
+def get_nearby_places(lat: float, lng: float, is_kakao: bool = False, radius_m: int = 8000):
+    """국내(카카오 기반)는 카카오 카테고리 API를 사용하고, 해외는 Overpass API 사용"""
+    if is_kakao and KAKAO_REST_API_KEY:
+        attractions = search_kakao_category("AT4", lat, lng, radius=radius_m)
+        restaurants = search_kakao_category("FD6", lat, lng, radius=radius_m)
+        if attractions or restaurants:
+            return attractions[:15], restaurants[:15]
+
     query = f"""
     [out:json][timeout:25];
     (
@@ -361,18 +410,19 @@ def render_destination_lookup(place_info):
     admin1 = place_info["admin1"] or ""
     lat, lng = place_info["lat"], place_info["lng"]
     country_code = (place_info["country_code"] or "").upper()
+    is_kakao = place_info.get("is_kakao", False)
 
     location_label = f"{name}"
     if admin1 and admin1 != name:
         location_label += f", {admin1}"
-    if country:
+    if country and not is_kakao:
         location_label += f" ({country})"
 
     st.markdown(f"### 📍 {location_label}")
 
     with st.spinner("주변 관광지·식당 정보를 불러오는 중..."):
         try:
-            attractions, restaurants = get_nearby_places(lat, lng)
+            attractions, restaurants = get_nearby_places(lat, lng, is_kakao=is_kakao)
         except Exception:
             attractions, restaurants = [], []
 
@@ -422,9 +472,7 @@ def render_destination_lookup(place_info):
         with st.container(border=True):
             st.markdown("#### 💱 환율")
             target_currency = COUNTRY_CODE_TO_CURRENCY.get(country_code)
-            if not target_currency:
-                st.write("통화 정보 없음")
-            elif target_currency == "KRW":
+            if not target_currency or target_currency == "KRW":
                 st.write("국내 여행지 🇰🇷")
             else:
                 try:
@@ -635,7 +683,7 @@ elif menu == "✈️ 여행 준비 도우미":
     with search_col1:
         travel_input = st.text_input(
             "여행지 검색",
-            placeholder="예: 제주도, 오사카, 방콕, 파리 ...",
+            placeholder="예: 부산, 제주도, 오사카, 방콕, 파리 ...",
             label_visibility="collapsed",
             key="travel_search_input",
         )

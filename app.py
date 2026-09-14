@@ -292,6 +292,7 @@ WEATHER_CODE_KR = {
 
 @st.cache_data(ttl=3600)
 def get_exchange_rates(base_currency: str):
+    """무료 환율 API(open.er-api.com) - 키 불필요"""
     url = f"https://open.er-api.com/v6/latest/{base_currency}"
     response = requests.get(url, timeout=10)
     response.raise_for_status()
@@ -325,7 +326,7 @@ def geocode_destination(query: str):
         except Exception:
             pass
 
-    # Open-Meteo 폴백 (해외 여행지 지원)
+    # Open-Meteo 폴백 (해외 여행지 지원, 키 불필요)
     url = "https://geocoding-api.open-meteo.com/v1/search"
     params = {"name": query, "count": 1, "language": "ko", "format": "json"}
     response = requests.get(url, params=params, timeout=10)
@@ -347,6 +348,7 @@ def geocode_destination(query: str):
 
 @st.cache_data(ttl=1800)
 def get_current_weather(lat: float, lng: float):
+    """무료 날씨 API(Open-Meteo) - 키 불필요"""
     url = "https://api.open-meteo.com/v1/forecast"
     params = {"latitude": lat, "longitude": lng, "current_weather": True}
     response = requests.get(url, params=params, timeout=10)
@@ -401,6 +403,66 @@ def get_nearby_places(lat: float, lng: float, is_kakao: bool = False, radius_m: 
 def get_google_maps_url(name: str, lat: float, lng: float) -> str:
     query = requests.utils.quote(f"{name} {lat},{lng}")
     return f"https://www.google.com/maps/search/?api=1&query={query}"
+
+
+def get_osrm_route(places, profile="driving"):
+    """
+    OSRM(Open Source Routing Machine) 공개 데모 서버로 실제 도로 경로를 계산한다.
+    - 키 발급/가입 불필요, 완전 무료
+    - places: [{"name":..., "lat":..., "lng":...}, ...] 최소 2개 (출발지+도착지, 중간은 경유지)
+    - profile: "driving" / "walking" / "cycling"
+    """
+    coords = ";".join(f"{p['lng']},{p['lat']}" for p in places)
+    url = f"https://router.project-osrm.org/route/v1/{profile}/{coords}"
+    params = {"overview": "full", "geometries": "geojson"}
+
+    response = requests.get(url, params=params, timeout=15)
+    response.raise_for_status()
+    data = response.json()
+
+    if data.get("code") != "Ok":
+        raise ValueError(
+            data.get("message", "경로를 찾을 수 없습니다. (OSRM 무료 서버는 도로망 기준이라 일부 지역은 지원이 제한적일 수 있어요)")
+        )
+
+    route = data["routes"][0]
+    distance_m = route["distance"]
+    duration_s = route["duration"]
+
+    # GeoJSON은 [lng, lat] 순서라서 folium이 쓰는 [lat, lng]로 뒤집는다
+    coordinates = route["geometry"]["coordinates"]
+    path_points = [(lat, lng) for lng, lat in coordinates]
+
+    return {
+        "distance_km": distance_m / 1000,
+        "duration_min": duration_s / 60,
+        "path": path_points,
+    }
+
+
+def build_route_map(places, path_points):
+    """경유지 마커 + 실제 경로 폴리라인이 그려진 지도를 만든다."""
+    center_lat = sum(p["lat"] for p in places) / len(places)
+    center_lng = sum(p["lng"] for p in places) / len(places)
+
+    m = folium.Map(location=[center_lat, center_lng], zoom_start=12, tiles="OpenStreetMap")
+
+    labels = ["🚩 출발"] + [f"📍 경유지 {i}" for i in range(1, len(places) - 1)] + ["🏁 도착"]
+    colors = ["green"] + ["blue"] * (len(places) - 2) + ["red"]
+
+    for place, label, color in zip(places, labels, colors):
+        folium.Marker(
+            location=[place["lat"], place["lng"]],
+            popup=f"{label}: {place['name']}",
+            tooltip=f"{label}: {place['name']}",
+            icon=folium.Icon(color=color, icon="flag" if label != "🏁 도착" else "stop", prefix="fa"),
+        ).add_to(m)
+
+    if path_points:
+        folium.PolyLine(path_points, color="#FF6B35", weight=5, opacity=0.8).add_to(m)
+        m.fit_bounds(path_points)
+
+    return m
 
 
 def render_destination_lookup(place_info):
@@ -535,6 +597,10 @@ if "prefill_search" not in st.session_state:
     st.session_state.prefill_search = ""
 if "travel_query" not in st.session_state:
     st.session_state.travel_query = ""
+if "route_places" not in st.session_state:
+    st.session_state.route_places = []
+if "route_result" not in st.session_state:
+    st.session_state.route_result = None
 
 location = get_geolocation()
 user_lat, user_lng = None, None
@@ -546,7 +612,7 @@ with st.sidebar:
     st.markdown("## 🧭 메뉴")
     menu = st.radio(
         "메뉴 선택",
-        ["🗺️ 어디 갈까?", "🍚 오늘 뭐 먹지?", "✈️ 여행 준비 도우미"],
+        ["🗺️ 어디 갈까?", "🍚 오늘 뭐 먹지?", "✈️ 여행 준비 도우미", "🚗 여행 루트 짜기"],
         label_visibility="collapsed",
     )
     st.divider()
@@ -736,3 +802,100 @@ elif menu == "✈️ 여행 준비 도우미":
                     if st.button("🌤️ 날씨/환율 보기", key=f"overseas_weather_{idx}", use_container_width=True):
                         st.session_state.travel_query = dest["search"]
                         st.rerun()
+
+
+elif menu == "🚗 여행 루트 짜기":
+    st.markdown("## 🚗 여행 루트 짜기")
+    st.caption("가고 싶은 장소들을 순서대로 추가하면, 실제 도로 경로를 계산해드려요. (OSRM 무료 API 사용)")
+
+    add_col1, add_col2 = st.columns([4, 1])
+    with add_col1:
+        route_place_input = st.text_input(
+            "장소 추가",
+            placeholder="예: 서울역, 경복궁, 남산타워 ...",
+            label_visibility="collapsed",
+            key="route_place_input",
+        )
+    with add_col2:
+        add_clicked = st.button("➕ 추가", use_container_width=True)
+
+    if add_clicked and route_place_input.strip():
+        found = search_place(route_place_input.strip())
+        if not found:
+            st.warning(f"'{route_place_input}' 장소를 찾을 수 없어요.")
+        else:
+            top = found[0]
+            st.session_state.route_places.append({
+                "name": top["place_name"],
+                "lat": float(top["y"]),
+                "lng": float(top["x"]),
+            })
+            st.rerun()
+
+    if st.session_state.route_places:
+        st.write("")
+        st.markdown("#### 📋 현재 경로 순서")
+        for i, place in enumerate(st.session_state.route_places):
+            row_col1, row_col2 = st.columns([5, 1])
+            with row_col1:
+                if i == 0:
+                    tag = "🚩 출발"
+                elif i == len(st.session_state.route_places) - 1 and len(st.session_state.route_places) > 1:
+                    tag = "🏁 도착"
+                else:
+                    tag = f"📍 경유지 {i}"
+                st.write(f"{tag}: **{place['name']}**")
+            with row_col2:
+                if st.button("삭제", key=f"remove_{i}", use_container_width=True):
+                    st.session_state.route_places.pop(i)
+                    st.rerun()
+
+        st.write("")
+        clear_col, mode_col = st.columns([1, 2])
+        with clear_col:
+            if st.button("🗑️ 전체 초기화", use_container_width=True):
+                st.session_state.route_places = []
+                st.session_state.route_result = None
+                st.rerun()
+
+        with mode_col:
+            profile_label = st.selectbox(
+                "이동 수단",
+                ["자동차", "도보", "자전거"],
+                label_visibility="collapsed",
+            )
+            profile_map = {"자동차": "driving", "도보": "walking", "자전거": "cycling"}
+
+        if len(st.session_state.route_places) < 2:
+            st.info("최소 2곳 이상(출발지, 도착지) 추가하면 경로를 계산할 수 있어요.")
+        else:
+            if st.button("🧭 경로 계산하기", use_container_width=True, type="primary"):
+                with st.spinner("경로를 계산하는 중..."):
+                    try:
+                        route = get_osrm_route(
+                            st.session_state.route_places,
+                            profile=profile_map[profile_label],
+                        )
+                        st.session_state.route_result = route
+                    except Exception as e:
+                        st.error(f"경로 계산 중 문제가 발생했어요: {e}")
+                        st.session_state.route_result = None
+
+        if st.session_state.route_result:
+            route = st.session_state.route_result
+            st.write("")
+            info_col1, info_col2 = st.columns(2)
+            with info_col1:
+                st.metric("🚗 총 거리", f"{route['distance_km']:.1f} km")
+            with info_col2:
+                st.metric("⏱️ 예상 소요 시간", f"{route['duration_min']:.0f} 분")
+
+            m = build_route_map(st.session_state.route_places, route["path"])
+            st_folium(m, width=None, height=520, use_container_width=True)
+    else:
+        st.info("위 검색창에 장소를 추가해서 여행 루트를 만들어보세요! (예: 서울역 → 경복궁 → 남산타워)")
+PYEOF
+python3 -m py_compile /home/claude/kakao_map_app/app.py && echo "문법 검증 통과"
+출력
+
+문법 검증 통과

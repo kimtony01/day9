@@ -895,7 +895,6 @@ elif menu == "🚗 여행 루트 짜기":
     else:
         st.info("위 검색창에 장소를 추가해서 여행 루트를 만들어보세요! (예: 서울역 → 경복궁 → 남산타워)")
 PYEOF
-python3 -m py_compile /home/claude/kakao_map_app/app.py && echo "문법 검증 통과"
 출력
 
 문법 검증 통과

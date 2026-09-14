@@ -612,7 +612,7 @@ with st.sidebar:
     st.markdown("## 🧭 메뉴")
     menu = st.radio(
         "메뉴 선택",
-        ["🗺️ 어디 갈까?", "🍚 오늘 뭐 먹지?", "✈️ 여행 준비 도우미", "🚗 여행 루트 짜기"],
+        ["🗺️ 어디 갈까?", "🍚 오늘 뭐 먹지?", "✈️ 여행 준비 도우미"],
         label_visibility="collapsed",
     )
     st.divider()
@@ -743,154 +743,159 @@ elif menu == "🍚 오늘 뭐 먹지?":
 
 elif menu == "✈️ 여행 준비 도우미":
     st.markdown("## ✈️ 여행 준비 도우미")
-    st.caption("여행지를 검색하면 날씨와 환율을 바로 확인할 수 있어요. 아래에서 인기 여행지도 둘러보세요!")
+    st.caption("여행지 검색부터 루트 짜기, 인기 여행지 둘러보기까지 한 곳에서!")
 
-    search_col1, search_col2 = st.columns([4, 1])
-    with search_col1:
-        travel_input = st.text_input(
-            "여행지 검색",
-            placeholder="예: 부산, 제주도, 오사카, 방콕, 파리 ...",
-            label_visibility="collapsed",
-            key="travel_search_input",
-        )
-    with search_col2:
-        travel_search_clicked = st.button("🔍 검색", use_container_width=True, key="travel_search_btn")
+    tab_lookup, tab_route, tab_popular = st.tabs(["📍 날씨·환율 검색", "🚗 루트 짜기", "🌏 인기 여행지"])
 
-    if travel_search_clicked and travel_input.strip():
-        st.session_state.travel_query = travel_input.strip()
+    # ================= 탭 1: 여행지 검색 -> 날씨/환율 =================
+    with tab_lookup:
+        search_col1, search_col2 = st.columns([4, 1])
+        with search_col1:
+            travel_input = st.text_input(
+                "여행지 검색",
+                placeholder="예: 부산, 제주도, 오사카, 방콕, 파리 ...",
+                label_visibility="collapsed",
+                key="travel_search_input",
+            )
+        with search_col2:
+            travel_search_clicked = st.button("🔍 검색", use_container_width=True, key="travel_search_btn")
 
-    if st.session_state.travel_query:
-        place_info = geocode_destination(st.session_state.travel_query)
-        if not place_info:
-            st.warning(f"'{st.session_state.travel_query}'에 대한 정보를 찾을 수 없어요. 다른 이름으로 시도해보세요.")
+        if travel_search_clicked and travel_input.strip():
+            st.session_state.travel_query = travel_input.strip()
+
+        if st.session_state.travel_query:
+            place_info = geocode_destination(st.session_state.travel_query)
+            if not place_info:
+                st.warning(f"'{st.session_state.travel_query}'에 대한 정보를 찾을 수 없어요. 다른 이름으로 시도해보세요.")
+            else:
+                render_destination_lookup(place_info)
         else:
-            render_destination_lookup(place_info)
+            st.info("여행지 이름을 검색하면 지도, 날씨, 환율, 주변 관광지·식당을 한 번에 보여드려요.")
 
-    st.divider()
+    # ================= 탭 2: 루트 짜기 =================
+    with tab_route:
+        st.caption("가고 싶은 장소들을 순서대로 추가하면, 실제 도로 경로를 계산해드려요. (OSRM 무료 API 사용)")
 
-    tab_domestic, tab_overseas = st.tabs(["🇰🇷 국내 인기 여행지", "🌍 해외 인기 여행지"])
+        add_col1, add_col2 = st.columns([4, 1])
+        with add_col1:
+            route_place_input = st.text_input(
+                "장소 추가",
+                placeholder="예: 서울역, 경복궁, 남산타워 ...",
+                label_visibility="collapsed",
+                key="route_place_input",
+            )
+        with add_col2:
+            add_clicked = st.button("➕ 추가", use_container_width=True)
 
-    with tab_domestic:
-        st.write("")
-        cols = st.columns(2)
-        for idx, dest in enumerate(DOMESTIC_DESTINATIONS):
-            col = cols[idx % 2]
-            with col:
-                with st.container(border=True):
-                    st.markdown(f"### {dest['emoji']} {dest['name']}")
-                    st.write(dest["desc"])
-                    btn_col1, btn_col2 = st.columns(2)
-                    with btn_col1:
-                        if st.button("🗺️ 지도 검색", key=f"domestic_map_{idx}", use_container_width=True):
-                            st.session_state.prefill_search = dest["search"]
-                            st.session_state.search_keyword = dest["search"]
-                            st.info("왼쪽 사이드바에서 '🗺️ 어디 갈까?' 메뉴를 눌러 확인하세요!")
-                    with btn_col2:
-                        if st.button("🌤️ 날씨/환율", key=f"domestic_weather_{idx}", use_container_width=True):
-                            st.session_state.travel_query = dest["name"]
-                            st.rerun()
-
-    with tab_overseas:
-        st.write("")
-        cols = st.columns(2)
-        for idx, dest in enumerate(OVERSEAS_DESTINATIONS):
-            col = cols[idx % 2]
-            with col:
-                with st.container(border=True):
-                    st.markdown(f"### {dest['emoji']} {dest['country']}")
-                    st.write(dest["desc"])
-                    if st.button("🌤️ 날씨/환율 보기", key=f"overseas_weather_{idx}", use_container_width=True):
-                        st.session_state.travel_query = dest["search"]
-                        st.rerun()
-
-
-elif menu == "🚗 여행 루트 짜기":
-    st.markdown("## 🚗 여행 루트 짜기")
-    st.caption("가고 싶은 장소들을 순서대로 추가하면, 실제 도로 경로를 계산해드려요. (OSRM 무료 API 사용)")
-
-    add_col1, add_col2 = st.columns([4, 1])
-    with add_col1:
-        route_place_input = st.text_input(
-            "장소 추가",
-            placeholder="예: 서울역, 경복궁, 남산타워 ...",
-            label_visibility="collapsed",
-            key="route_place_input",
-        )
-    with add_col2:
-        add_clicked = st.button("➕ 추가", use_container_width=True)
-
-    if add_clicked and route_place_input.strip():
-        found = search_place(route_place_input.strip())
-        if not found:
-            st.warning(f"'{route_place_input}' 장소를 찾을 수 없어요.")
-        else:
-            top = found[0]
-            st.session_state.route_places.append({
-                "name": top["place_name"],
-                "lat": float(top["y"]),
-                "lng": float(top["x"]),
-            })
-            st.rerun()
-
-    if st.session_state.route_places:
-        st.write("")
-        st.markdown("#### 📋 현재 경로 순서")
-        for i, place in enumerate(st.session_state.route_places):
-            row_col1, row_col2 = st.columns([5, 1])
-            with row_col1:
-                if i == 0:
-                    tag = "🚩 출발"
-                elif i == len(st.session_state.route_places) - 1 and len(st.session_state.route_places) > 1:
-                    tag = "🏁 도착"
-                else:
-                    tag = f"📍 경유지 {i}"
-                st.write(f"{tag}: **{place['name']}**")
-            with row_col2:
-                if st.button("삭제", key=f"remove_{i}", use_container_width=True):
-                    st.session_state.route_places.pop(i)
-                    st.rerun()
-
-        st.write("")
-        clear_col, mode_col = st.columns([1, 2])
-        with clear_col:
-            if st.button("🗑️ 전체 초기화", use_container_width=True):
-                st.session_state.route_places = []
-                st.session_state.route_result = None
+        if add_clicked and route_place_input.strip():
+            found = search_place(route_place_input.strip())
+            if not found:
+                st.warning(f"'{route_place_input}' 장소를 찾을 수 없어요.")
+            else:
+                top = found[0]
+                st.session_state.route_places.append({
+                    "name": top["place_name"],
+                    "lat": float(top["y"]),
+                    "lng": float(top["x"]),
+                })
                 st.rerun()
 
-        with mode_col:
-            profile_label = st.selectbox(
-                "이동 수단",
-                ["자동차", "도보", "자전거"],
-                label_visibility="collapsed",
-            )
-            profile_map = {"자동차": "driving", "도보": "walking", "자전거": "cycling"}
-
-        if len(st.session_state.route_places) < 2:
-            st.info("최소 2곳 이상(출발지, 도착지) 추가하면 경로를 계산할 수 있어요.")
-        else:
-            if st.button("🧭 경로 계산하기", use_container_width=True, type="primary"):
-                with st.spinner("경로를 계산하는 중..."):
-                    try:
-                        route = get_osrm_route(
-                            st.session_state.route_places,
-                            profile=profile_map[profile_label],
-                        )
-                        st.session_state.route_result = route
-                    except Exception as e:
-                        st.error(f"경로 계산 중 문제가 발생했어요: {e}")
-                        st.session_state.route_result = None
-
-        if st.session_state.route_result:
-            route = st.session_state.route_result
+        if st.session_state.route_places:
             st.write("")
-            info_col1, info_col2 = st.columns(2)
-            with info_col1:
-                st.metric("🚗 총 거리", f"{route['distance_km']:.1f} km")
-            with info_col2:
-                st.metric("⏱️ 예상 소요 시간", f"{route['duration_min']:.0f} 분")
+            st.markdown("#### 📋 현재 경로 순서")
+            for i, place in enumerate(st.session_state.route_places):
+                row_col1, row_col2 = st.columns([5, 1])
+                with row_col1:
+                    if i == 0:
+                        tag = "🚩 출발"
+                    elif i == len(st.session_state.route_places) - 1 and len(st.session_state.route_places) > 1:
+                        tag = "🏁 도착"
+                    else:
+                        tag = f"📍 경유지 {i}"
+                    st.write(f"{tag}: **{place['name']}**")
+                with row_col2:
+                    if st.button("삭제", key=f"remove_{i}", use_container_width=True):
+                        st.session_state.route_places.pop(i)
+                        st.rerun()
 
-            m = build_route_map(st.session_state.route_places, route["path"])
-            st_folium(m, width=None, height=520, use_container_width=True)
-    else:
-        st.info("위 검색창에 장소를 추가해서 여행 루트를 만들어보세요! (예: 서울역 → 경복궁 → 남산타워)")
+            st.write("")
+            clear_col, mode_col = st.columns([1, 2])
+            with clear_col:
+                if st.button("🗑️ 전체 초기화", use_container_width=True):
+                    st.session_state.route_places = []
+                    st.session_state.route_result = None
+                    st.rerun()
+
+            with mode_col:
+                profile_label = st.selectbox(
+                    "이동 수단",
+                    ["자동차", "도보", "자전거"],
+                    label_visibility="collapsed",
+                )
+                profile_map = {"자동차": "driving", "도보": "walking", "자전거": "cycling"}
+
+            if len(st.session_state.route_places) < 2:
+                st.info("최소 2곳 이상(출발지, 도착지) 추가하면 경로를 계산할 수 있어요.")
+            else:
+                if st.button("🧭 경로 계산하기", use_container_width=True, type="primary"):
+                    with st.spinner("경로를 계산하는 중..."):
+                        try:
+                            route = get_osrm_route(
+                                st.session_state.route_places,
+                                profile=profile_map[profile_label],
+                            )
+                            st.session_state.route_result = route
+                        except Exception as e:
+                            st.error(f"경로 계산 중 문제가 발생했어요: {e}")
+                            st.session_state.route_result = None
+
+            if st.session_state.route_result:
+                route = st.session_state.route_result
+                st.write("")
+                info_col1, info_col2 = st.columns(2)
+                with info_col1:
+                    st.metric("🚗 총 거리", f"{route['distance_km']:.1f} km")
+                with info_col2:
+                    st.metric("⏱️ 예상 소요 시간", f"{route['duration_min']:.0f} 분")
+
+                m = build_route_map(st.session_state.route_places, route["path"])
+                st_folium(m, width=None, height=520, use_container_width=True)
+        else:
+            st.info("위 검색창에 장소를 추가해서 여행 루트를 만들어보세요! (예: 서울역 → 경복궁 → 남산타워)")
+
+    # ================= 탭 3: 인기 여행지 둘러보기 =================
+    with tab_popular:
+        sub_domestic, sub_overseas = st.tabs(["🇰🇷 국내 인기 여행지", "🌍 해외 인기 여행지"])
+
+        with sub_domestic:
+            st.write("")
+            cols = st.columns(2)
+            for idx, dest in enumerate(DOMESTIC_DESTINATIONS):
+                col = cols[idx % 2]
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"### {dest['emoji']} {dest['name']}")
+                        st.write(dest["desc"])
+                        btn_col1, btn_col2 = st.columns(2)
+                        with btn_col1:
+                            if st.button("🗺️ 지도 검색", key=f"domestic_map_{idx}", use_container_width=True):
+                                st.session_state.prefill_search = dest["search"]
+                                st.session_state.search_keyword = dest["search"]
+                                st.info("왼쪽 사이드바에서 '🗺️ 어디 갈까?' 메뉴를 눌러 확인하세요!")
+                        with btn_col2:
+                            if st.button("🌤️ 날씨/환율", key=f"domestic_weather_{idx}", use_container_width=True):
+                                st.session_state.travel_query = dest["name"]
+                                st.rerun()
+
+        with sub_overseas:
+            st.write("")
+            cols = st.columns(2)
+            for idx, dest in enumerate(OVERSEAS_DESTINATIONS):
+                col = cols[idx % 2]
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"### {dest['emoji']} {dest['country']}")
+                        st.write(dest["desc"])
+                        if st.button("🌤️ 날씨/환율 보기", key=f"overseas_weather_{idx}", use_container_width=True):
+                            st.session_state.travel_query = dest["search"]
+                            st.rerun()
